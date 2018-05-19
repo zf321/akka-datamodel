@@ -1,5 +1,5 @@
 package ess.datamodel.domain.category
 
-class CategoryTypeScheme {
+class CategoryTypeSchema {
 
 }
