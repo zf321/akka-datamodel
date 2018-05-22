@@ -11,17 +11,26 @@ import play.api.libs.json.{Format, Json}
   * @param code
   * @param isSystem
   */
-case class CategoryTypeSchema(id: Option[UUID], name: String, code: String, isSystem: Boolean = false) {
+case class CategoryTypeSchema(id: UUID, name: String, code: String,types:Set[CategoryType] = Set[CategoryType](), isSystem: Boolean = false) {
+  def addType(t:CategoryType) = {
+    copy(
+      types = (types + t)
+    )
+  }
 }
 
 object CategoryTypeSchema {
   implicit val format: Format[CategoryTypeSchema] = Json.format
 
   def create(
+              id:UUID,
               name: String,
               code: String,
+              types:Set[CategoryType] = Set[CategoryType](),
               isSystem: Boolean = false,
-            ) = CategoryTypeSchema(None, name, code, isSystem)
+            ) = CategoryTypeSchema(id, name, code, types,isSystem)
+
+
 }
 
 /**
@@ -31,19 +40,18 @@ object CategoryTypeSchema {
   * @param name
   * @param code
   * @param parent
-  * @param schema
   * @param isSystem
   */
-case class CategoryType(id: Option[UUID], name: String, code: String, parent: Option[CategoryType], schema: CategoryTypeSchema, isSystem: Boolean = false) {
-  def safeId = id.getOrElse(UUID.randomUUID())
+case class CategoryType(id: UUID, name: String, code: String, parent: Option[CategoryType], isSystem: Boolean = false) {
 }
 
 object CategoryType {
   implicit val format: Format[CategoryType] = Json.format
 
   def create(
-              name: String, code: String, parent: Option[CategoryType], schema: CategoryTypeSchema, isSystem: Boolean = false,
-            ) = CategoryType(None, name, code, parent, schema, isSystem)
+              id:UUID,
+              name: String, code: String, parent: Option[CategoryType], isSystem: Boolean = false,
+            ) = CategoryType(id, name, code, parent, isSystem)
 }
 
 /**
@@ -57,39 +65,14 @@ object CategoryType {
   * @param endDate
   * @param isSystem
   */
-case class Category(id: Option[UUID], name: String, code: String, parent: Option[Category], fromDate: Date, endDate: Option[Date], categoryType: CategoryType, isSystem: Boolean = false) {
-  def safeId = id.getOrElse(UUID.randomUUID())
+case class Category(id: UUID, name: String, code: String, parent: Option[Category], fromDate: Option[Date], endDate: Option[Date], categoryType: CategoryType, isSystem: Boolean = false) {
 }
 
 object Category {
-  implicit val format: Format[CategoryType] = Json.format
+  implicit val format: Format[Category] = Json.format
 
   def create(
-              name: String, code: String, parent: Option[Category], schema: UUID, fromDate: Date, endDate: Option[Date], categoryType: CategoryType, isSystem: Boolean = false,
-            ) = Category(None, name, code, parent, fromDate, endDate, categoryType, isSystem)
+              id:UUID,
+              name: String, code: String, parent: Option[Category], schema: UUID, fromDate: Option[Date], endDate: Option[Date], categoryType: CategoryType, isSystem: Boolean = false,
+            ) = Category(id, name, code, parent, fromDate, endDate, categoryType, isSystem)
 }
-
-/**
-  * CategoryClassification
-  *
-  * @param id
-  * @param relateId
-  * @param category
-  * @param code
-  * @param fromDate
-  * @param endDate
-  * @param isSystem
-  */
-case class CategoryClassification(id: Option[UUID], relateId: UUID, category: Category, code: String, fromDate: Date, endDate: Option[Date], isSystem: Boolean = false) {
-  def safeId = id.getOrElse(UUID.randomUUID())
-}
-
-object CategoryClassification {
-  implicit val format: Format[CategoryType] = Json.format
-
-  def create(
-              relateId: UUID, category: Category, code: String, fromDate: Date, endDate: Option[Date], isSystem: Boolean = false
-            ) = CategoryClassification(None, relateId, category, code, fromDate, endDate, isSystem)
-}
-
-

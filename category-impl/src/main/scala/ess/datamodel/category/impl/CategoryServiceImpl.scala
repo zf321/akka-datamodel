@@ -7,7 +7,7 @@ import com.lightbend.lagom.scaladsl.api.ServiceCall
 import com.lightbend.lagom.scaladsl.api.transport.NotFound
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntityRegistry
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
-import ess.datamodel.category.api.{CategoryService, CategoryTypeSchema}
+import ess.datamodel.category.api.{CategoryService, CategoryType, CategoryTypeSchema}
 
 import scala.concurrent.ExecutionContext
 
@@ -15,7 +15,7 @@ class CategoryServiceImpl(registry: PersistentEntityRegistry, categoryRepository
   override def createSchema = ServerServiceCall {
     schema =>
       val id = UUIDs.timeBased()
-      val sch = CategoryTypeSchema(Some(id),schema.name,schema.code,schema.isSystem)
+      val sch = CategoryTypeSchema(id,schema.name,schema.code,Set[CategoryType](),schema.isSystem)
       entityRef(id).ask(CreateSchema(sch)).map(_ => sch)
 
   }
@@ -32,7 +32,13 @@ class CategoryServiceImpl(registry: PersistentEntityRegistry, categoryRepository
   }
 
 
+  override def addType(id: UUID): ServiceCall[CategoryType, CategoryType] = ServerServiceCall { t=>
+    entityRef(id).ask(AddType(t)).map(_=>t);
+  }
+
+
   private def entityRef(itemId: UUID) = entityRefString(itemId.toString)
 
   private def entityRefString(itemId: String) = registry.refFor[CategoryEntity](itemId)
+
 }

@@ -1,8 +1,11 @@
 package ess.datamodel.category.impl
 
+import java.util.UUID
+
+import akka.Done
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntity.ReplyType
 import com.lightbend.lagom.scaladsl.persistence.{AggregateEvent, AggregateEventTag, PersistentEntity}
-import ess.datamodel.category.api.CategoryTypeSchema
+import ess.datamodel.category.api.{CategoryType, CategoryTypeSchema}
 import ess.datamodel.utils.JsonFormats._
 import play.api.libs.json.{Format, Json}
 
@@ -17,6 +20,7 @@ class CategoryEntity extends PersistentEntity {
   override def behavior: Behavior = {
 
     case None => notCreated
+    case _ => edit
   }
 
 
@@ -31,6 +35,15 @@ class CategoryEntity extends PersistentEntity {
         ctx.thenPersist(SchemaCreated(item))(_ => ctx.reply(item))
     }.onEvent {
       case (SchemaCreated(item), state) => Some(item)
+    }.orElse(getSchemaCommand)
+  }
+
+  private val edit = {
+    Actions().onCommand[AddType, Done] {
+      case (AddType(item), ctx, state) =>
+        ctx.thenPersist(TypeAdded(state.get.id, item))(_ => ctx.reply(Done))
+    }.onEvent {
+      case (TypeAdded(id, item), state) => Some(state.get.addType(item))
     }.orElse(getSchemaCommand)
   }
 }
@@ -50,6 +63,13 @@ case class CreateSchema(schema: CategoryTypeSchema) extends CategoryCommand[Cate
 
 object CreateSchema {
   implicit val format: Format[CreateSchema] = Json.format
+}
+
+
+case class AddType(t: CategoryType) extends CategoryCommand[Done]
+
+object AddType {
+  implicit val format: Format[AddType] = Json.format
 }
 
 /**
@@ -74,4 +94,10 @@ case class SchemaCreated(schema: CategoryTypeSchema) extends CategoryEvent
 
 object SchemaCreated {
   implicit val format: Format[SchemaCreated] = Json.format
+}
+
+case class TypeAdded(id: UUID, t: CategoryType) extends CategoryEvent
+
+object TypeAdded {
+  implicit val format: Format[TypeAdded] = Json.format
 }

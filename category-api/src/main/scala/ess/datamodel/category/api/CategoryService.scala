@@ -12,15 +12,18 @@ trait CategoryService extends Service {
 
   def getSchema(id: UUID): ServiceCall[UUID, CategoryTypeSchema]
 
+  def addType(id:UUID) :ServiceCall[CategoryType,CategoryType]
+
   override def descriptor: Descriptor = {
     import Service._
     named("category")
       .withCalls(
-        restCall(Method.GET, "/api/category/schema", getSchemas _),
-        restCall(Method.GET, "/api/category/schema/:id", getSchema _),
-        restCall(Method.POST, "/api/category/schema", createSchema _)
+        restCall(Method.GET, "/api/category", getSchemas _),
+        restCall(Method.GET, "/api/category/:id", getSchema _),
+        restCall(Method.POST, "/api/category", createSchema _),
+        restCall(Method.POST, "/api/category/:id/type", addType _)
       ).withAutoAcl(true).withAcls(
-      ServiceAcl.forMethodAndPathRegex(Method.OPTIONS, "/api/category/.*")
+      ServiceAcl.forMethodAndPathRegex(Method.OPTIONS, "/api/.*")
     )
   }
 }

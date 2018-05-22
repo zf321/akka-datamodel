@@ -1,74 +1,64 @@
 package ess.datamodel.category.impl
 
-import akka.Done
-import com.datastax.driver.core.PreparedStatement
-import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor
-import com.lightbend.lagom.scaladsl.persistence.cassandra.{CassandraReadSide, CassandraSession}
-import ess.datamodel.category.api.CategoryTypeSchema
+import java.util.UUID
+
+import akka.persistence.query.Offset
+import akka.{Done, NotUsed}
+import akka.stream.scaladsl.Flow
+import com.lightbend.lagom.scaladsl.persistence.{AggregateEventTag, EventStreamElement, ReadSideProcessor}
+import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
+import ess.datamodel.category.api.{CategoryType, CategoryTypeSchema}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-private[impl] class CategoryRepository(session: CassandraSession)(implicit ec: ExecutionContext) {
+private[impl] class CategoryRepository()(implicit ec: ExecutionContext) {
+  private val data: Map[UUID, CategoryTypeSchema] = Map()
 
   def getSchemas() = {
-    session.selectAll("""
-      SELECT * FROM CategoryTypeSchema
-    """).map { rows =>
-      rows.map(row => CategoryTypeSchema(Some(row.getUUID("id")),row.getString("name"),row.getString("code"),row.getBool("isSystem")))
-    }
+    Future.successful(data.values.toSeq)
+  }
+
+  def addSchema(s: CategoryTypeSchema) = {
+    data + (s.id -> s)
+    Done
+  }
+
+  def getSchema(id: UUID) = {
+    data.get(id)
+  }
+
+  def addType(id: UUID, t: CategoryType) = {
+    var m = data.get(id).get
+    var ty = data.get(id).get.types + t
+    data + (id -> new CategoryTypeSchema(id,m.name,m.code,ty,m.isSystem))
+    Done
   }
 }
 
-private[impl] class CategoryEventProcessor(session: CassandraSession, readSide: CassandraReadSide)(implicit ec: ExecutionContext)
+private[impl] class CategoryEventProcessor(rep: CategoryRepository)(implicit ec: ExecutionContext)
   extends ReadSideProcessor[CategoryEvent] {
-  private var insertSchemaStatement: PreparedStatement = null
-
   override def buildHandler = {
-    readSide.builder[CategoryEvent]("categoryEventOffset")
-      .setGlobalPrepare(createTables)
-      .setPrepare(_ => prepareStatements())
-      .setEventHandler[SchemaCreated](e => insertSchema(e.event.schema))
-      .build
-  }
+    new ReadSideHandler[CategoryEvent] {
 
-  override def aggregateTags = CategoryEvent.Tag.allTags
+      override def prepare(tag: AggregateEventTag[CategoryEvent]): Future[Offset] = {
+        Future.successful(Offset.noOffset)
+      }
 
 
-  private def createTables() = {
-    for {
-      _ <- session.executeCreateTable(
-        """
-        CREATE TABLE IF NOT EXISTS CategoryTypeSchema (
-          id UUID PRIMARY KEY,
-          name text,
-          code text,
-          isSystem boolean
+      override def handle(): Flow[EventStreamElement[CategoryEvent], Done, NotUsed] = {
+        Flow[EventStreamElement[CategoryEvent]].mapAsync(1)(c => {
+          c.event match {
+            case SchemaCreated(schema) => Future.successful(rep.addSchema(schema))
+            case TypeAdded(id,t) => Future.successful(rep.addType(id,t))
+          }
+        }
+
         )
-      """)
-    } yield Done
-  }
 
-  private def prepareStatements() = {
-    for {
-      insertSchema <- session.prepare(
-        """
-        INSERT INTO CategoryTypeSchema(id, name,code,isSystem) VALUES (?, ?,?,?)
-      """)
-    } yield {
-      insertSchemaStatement = insertSchema
-      Done
+
+      }
     }
   }
 
-  private def insertSchema(item: CategoryTypeSchema) = {
-    Future.successful(List(
-      insertSchemaCreator(item)
-    ))
-  }
-
-  private def insertSchemaCreator(item: CategoryTypeSchema) = {
-    insertSchemaStatement.bind(item.id.get, item.name,item.code,java.lang.Boolean.valueOf(item.isSystem))
-  }
-
-
+  override def aggregateTags = CategoryEvent.Tag.allTags
 }
