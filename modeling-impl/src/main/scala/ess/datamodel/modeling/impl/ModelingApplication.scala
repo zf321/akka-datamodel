@@ -1,4 +1,4 @@
-package ess.datamodel.category.impl
+package ess.datamodel.modeling.impl
 
 import com.lightbend.lagom.scaladsl.broker.kafka.LagomKafkaComponents
 import com.lightbend.lagom.scaladsl.devmode.LagomDevModeComponents
@@ -6,7 +6,8 @@ import com.lightbend.lagom.scaladsl.persistence.cassandra.CassandraPersistenceCo
 import com.lightbend.rp.servicediscovery.lagom.scaladsl.LagomServiceLocatorComponents
 import com.lightbend.lagom.scaladsl.server._
 import com.softwaremill.macwire._
-import ess.datamodel.category.api.CategoryService
+import ess.datamodel.modeling.api.ModelingService
+import ess.datamodel.modeling.impl.category.{CategoryEntity, CategoryEventProcessor, CategoryRepository, CategorySerializerRegistry}
 import play.api.Environment
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
@@ -14,13 +15,13 @@ import play.filters.cors.CORSComponents
 
 import scala.concurrent.ExecutionContext
 
-trait CategoryComponents extends LagomServerComponents
+trait ModelingComponents extends LagomServerComponents
   with CassandraPersistenceComponents {
 
   implicit def executionContext: ExecutionContext
   def environment: Environment
 
-  override lazy val lagomServer = serverFor[CategoryService](wire[CategoryServiceImpl])
+  override lazy val lagomServer = serverFor[ModelingService](wire[ModelingServiceImpl])
   lazy val categoryRepository = wire[CategoryRepository]
   lazy val jsonSerializerRegistry = CategorySerializerRegistry
 
@@ -28,23 +29,23 @@ trait CategoryComponents extends LagomServerComponents
   readSide.register(wire[CategoryEventProcessor])
 }
 
-abstract class CategoryApplication(context: LagomApplicationContext) extends LagomApplication(context)
-  with CategoryComponents
+abstract class ModelingApplication(context: LagomApplicationContext) extends LagomApplication(context)
+  with ModelingComponents
   with AhcWSComponents
   with LagomKafkaComponents
   with CORSComponents {
 
   override val httpFilters: Seq[EssentialFilter] = Seq(corsFilter)
-  lazy val categoryService = serviceClient.implement[CategoryService]
+  lazy val modelingService = serviceClient.implement[ModelingService]
 
 }
 
-class CategoryApplicationLoader extends LagomApplicationLoader {
+class ModelingApplicationLoader extends LagomApplicationLoader {
   override def loadDevMode(context: LagomApplicationContext): LagomApplication =
-    new CategoryApplication(context) with LagomDevModeComponents
+    new ModelingApplication(context) with LagomDevModeComponents
 
   override def load(context: LagomApplicationContext): LagomApplication =
-    new CategoryApplication(context) with LagomServiceLocatorComponents
+    new ModelingApplication(context) with LagomServiceLocatorComponents
 
-  override def describeService = Some(readDescriptor[CategoryService])
+  override def describeService = Some(readDescriptor[ModelingService])
 }

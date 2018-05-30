@@ -1,7 +1,7 @@
-package ess.datamodel.category.impl
+package ess.datamodel.modeling.impl.category
 
 import com.lightbend.lagom.scaladsl.playjson.{JsonSerializer, JsonSerializerRegistry}
-import ess.datamodel.category.api.{Category, CategoryType, CategoryTypeSchema}
+import ess.datamodel.modeling.api.Category
 
 import scala.collection.immutable.Seq
 
@@ -9,16 +9,12 @@ object CategorySerializerRegistry extends JsonSerializerRegistry {
   override def serializers: Seq[JsonSerializer[_]] = Seq(
 
     // State
-    JsonSerializer[CategoryTypeSchema],
-    JsonSerializer[CategoryType],
     JsonSerializer[Category],
 
     // Commands and replies
-    JsonSerializer[CreateSchema],
-    JsonSerializer[AddType],
+    JsonSerializer[CreateCategory],
 
     // Events
-    JsonSerializer[SchemaCreated],
-    JsonSerializer[TypeAdded],
+    JsonSerializer[CategoryCreated],
   )
 }

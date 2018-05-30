@@ -1,6 +1,6 @@
 lazy val root = (project in file("."))
   .settings(name := "akka-datamodel")
-  .aggregate(categoryApi, categoryImpl,
+  .aggregate(modelingApi,modelingImpl
     )
   .settings(commonSettings: _*)
 
@@ -12,9 +12,6 @@ scalaVersion := "2.12.6"
 val playJsonDerivedCodecs = "org.julienrf" %% "play-json-derived-codecs" % "4.0.0"
 val macwire = "com.softwaremill.macwire" %% "macros" % "2.3.0" % "provided"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.4" % Test
-
-lazy val `akka-datamodel` = (project in file("."))
-  .aggregate(`domain`)
 
 lazy val security = (project in file("security"))
   .settings(
@@ -39,7 +36,7 @@ lazy val domain = (project in file("domain"))
     )
   )
 
-lazy val categoryApi = (project in file("category-api"))
+lazy val modelingApi = (project in file("modeling-api"))
   .settings(
     libraryDependencies ++= Seq(
       lagomScaladslApi,
@@ -48,7 +45,8 @@ lazy val categoryApi = (project in file("category-api"))
   )
   .dependsOn(security)
 
-lazy val categoryImpl = (project in file("category-impl"))
+
+lazy val modelingImpl = (project in file("modeling-impl"))
   .enablePlugins(LagomScala, SbtReactiveAppPlugin)
   .settings(
     libraryDependencies ++= Seq(
@@ -60,8 +58,7 @@ lazy val categoryImpl = (project in file("category-impl"))
       scalaTest,
       filters
     )
-  ).dependsOn(categoryApi)
-
+  ).dependsOn(modelingApi)
 
 def commonSettings: Seq[Setting[_]] = Seq(
 )
