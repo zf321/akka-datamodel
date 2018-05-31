@@ -1,5 +1,7 @@
 package ess.datamodel.modeling.impl.category
 
+import java.util.UUID
+
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntity.ReplyType
 import com.lightbend.lagom.scaladsl.persistence.{AggregateEvent, AggregateEventTag, PersistentEntity}
 import ess.datamodel.modeling.api.Category
@@ -30,11 +32,15 @@ class CategoryEntity extends PersistentEntity {
     Actions().onCommand[CreateCategory, Category] {
       case (CreateCategory(item), ctx, state) =>
         ctx.thenPersist(CategoryCreated(item))(_ => ctx.reply(item))
-    }.onEvent {
-      case (CategoryCreated(item), state) => Some(item)
-    }.orElse(getCategoryCommand)
+    }.onCommand[AddCategoryChild, Category] {
+      case (AddCategoryChild(id, item), ctx, state) =>
+        ctx.thenPersist(CategoryChildCreated(id, item))(_ => ctx.reply(item))
+    }
+      .onEvent {
+        case (CategoryCreated(item), state) => Some(item)
+        case (CategoryChildCreated(id, item), state) => Some(item)
+      }.orElse(getCategoryCommand)
   }
-
 }
 
 /**
@@ -52,6 +58,12 @@ case class CreateCategory(category: Category) extends CategoryCommand[Category]
 
 object CreateCategory {
   implicit val format: Format[CreateCategory] = Json.format
+}
+
+case class AddCategoryChild(id: UUID, category: Category) extends CategoryCommand[Category]
+
+object AddCategoryChild {
+  implicit val format: Format[AddCategoryChild] = Json.format
 }
 
 
@@ -77,4 +89,10 @@ case class CategoryCreated(category: Category) extends CategoryEvent
 
 object CategoryCreated {
   implicit val format: Format[CategoryCreated] = Json.format
+}
+
+case class CategoryChildCreated(id: UUID, category: Category) extends CategoryEvent
+
+object CategoryChildCreated {
+  implicit val format: Format[CategoryChildCreated] = Json.format
 }

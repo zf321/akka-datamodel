@@ -7,7 +7,8 @@ import com.lightbend.rp.servicediscovery.lagom.scaladsl.LagomServiceLocatorCompo
 import com.lightbend.lagom.scaladsl.server._
 import com.softwaremill.macwire._
 import ess.datamodel.modeling.api.ModelingService
-import ess.datamodel.modeling.impl.category.{CategoryEntity, CategoryEventProcessor, CategoryRepository, CategorySerializerRegistry}
+import ess.datamodel.modeling.impl.association.{AssociationEntity, AssociationEventProcessor, AssociationRepository}
+import ess.datamodel.modeling.impl.category.{CategoryEntity, CategoryEventProcessor, CategoryRepository}
 import play.api.Environment
 import play.api.libs.ws.ahc.AhcWSComponents
 import play.api.mvc.EssentialFilter
@@ -22,11 +23,17 @@ trait ModelingComponents extends LagomServerComponents
   def environment: Environment
 
   override lazy val lagomServer = serverFor[ModelingService](wire[ModelingServiceImpl])
+
   lazy val categoryRepository = wire[CategoryRepository]
-  lazy val jsonSerializerRegistry = CategorySerializerRegistry
+  lazy val associationRepository = wire[AssociationRepository]
+
+  lazy val jsonSerializerRegistry = ModelingSerializerRegistry
 
   persistentEntityRegistry.register(wire[CategoryEntity])
+  persistentEntityRegistry.register(wire[AssociationEntity])
+
   readSide.register(wire[CategoryEventProcessor])
+  readSide.register(wire[AssociationEventProcessor])
 }
 
 abstract class ModelingApplication(context: LagomApplicationContext) extends LagomApplication(context)
